@@ -54,7 +54,7 @@
 (defn source-image
   "returns an image instance of the original image"
   []
-  (let [image (ImageIO/read (File. "/Users/svdberg/Documents/Projects/Clojure/monalisa/mona-clojure/mona_lisa_crop.jpg"))]
+  (let [image (ImageIO/read (File. "/Users/maurits/code/clojure/clojurelisa/mona_lisa_crop.jpg"))]
     image))
 ;end graphics helper functions
 
@@ -219,18 +219,21 @@
 (defn -main [& args]
   (let [jframe (new JFrame "Fittest Program")
         fittest (atom (list initial-program))
+	image (source-image)
+	image-width (.getWidth image)
+	image-height (.getHeight image)
         settings {
                   :new-fittest-callback (fn [i f]
-                                            (swap! fittest (fn [o n] n) f)
-                                            (. jframe (repaint)))}]
+					  (swap! fittest (fn [o n] n) f)
+					  (.repaint jframe))}]
     (doto jframe
-      (.setSize (. (source-image) (getWidth)) (. (source-image) (getHeight)))
+      (.setSize image-width image-height)
       (.add (proxy [JPanel] []
-        (paint [g]
-          (doto g 
-            (.setColor Color/white)
-            (.fillRect 0 0 (. (source-image) (getWidth)) (. (source-image) (getHeight)))
-            (.drawImage (:image (first @fittest)) nil 0 0)))))
+	      (paint [g]
+		     (doto g 
+		       (.setColor Color/white)
+		       (.fillRect 0 0 image-width image-height)
+		       (.drawImage (:image (first @fittest)) nil 0 0)))))
       (.setVisible true))
     (evolve settings)))
 
