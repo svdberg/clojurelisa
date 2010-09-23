@@ -219,21 +219,21 @@
 (defn -main [& args]
   (let [jframe (new JFrame "Fittest Program")
         fittest (atom (list initial-program))
-	image (source-image)
-	image-width (.getWidth image)
-	image-height (.getHeight image)
+    image (source-image)
+    image-width (.getWidth image)
+    image-height (.getHeight image)
         settings {
                   :new-fittest-callback (fn [i f]
-					  (swap! fittest (fn [o n] n) f)
-					  (.repaint jframe))}]
+                      (swap! fittest (fn [o n] n) f)
+                      (.repaint jframe))}]
     (doto jframe
       (.setSize image-width image-height)
       (.add (proxy [JPanel] []
-	      (paint [g]
-		     (doto g 
-		       (.setColor Color/white)
-		       (.fillRect 0 0 image-width image-height)
-		       (.drawImage (:image (first @fittest)) nil 0 0)))))
+        (paint [g]
+          (doto g 
+              (.setColor Color/white)
+              (.fillRect 0 0 image-width image-height)
+              (.drawImage (:image (first @fittest)) nil 0 0)))))
       (.setVisible true))
     (evolve settings)))
 
