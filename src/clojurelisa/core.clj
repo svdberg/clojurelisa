@@ -51,11 +51,21 @@
       (.grabPixels))
     pixels))
 
+;(defn source-image
+;  "returns an image instance of the original image"
+;  []
+;  (let [image (ImageIO/read (File. "/Users/maurits/code/clojure/clojurelisa/mona_lisa_crop.jpg"))]
+;    image))
 (defn source-image
-  "returns an image instance of the original image"
+  "loads the source image"
   []
-  (let [image (ImageIO/read (File. "/Users/maurits/code/clojure/clojurelisa/mona_lisa_crop.jpg"))]
-    image))
+  (def file-chooser (new JFileChooser))
+  (doto file-chooser
+    (.setCurrentDirectory (new File "."))
+    (.showOpenDialog nil))
+  (let [image (ImageIO/read (. file-chooser (getSelectedFile)))]
+    image
+    ))
 ;end graphics helper functions
 
 ;program building blocks
@@ -95,11 +105,11 @@
   "determines the fitness of a single element.
   fitness is determined by how close a rendered image is to the original,
   using LMS as a guide, looping over all pixels of the source image"
-  [individual]
+  [individual image]
   (if (:fitness individual)
     individual
-    (let [gen-image (new BufferedImage (.getWidth (source-image)) (.getHeight (source-image)) BufferedImage/TYPE_INT_ARGB)
-          src-pixels (grab-pixels (source-image))]
+    (let [gen-image (new BufferedImage (.getWidth image) (.getHeight image) BufferedImage/TYPE_INT_ARGB)
+          src-pixels (grab-pixels image)]
       (apply (eval (:code individual)) [(. gen-image (createGraphics))])
       (def gen-pixels (grab-pixels gen-image))
       (loop [ i (int 0)
@@ -116,10 +126,10 @@
 
 (defn select
   "Selects the (configurable) n fittests out of a generation"
-  [population n]
+  [population n image]
   (take n
         (sort-by :fitness
-                 (pmap (fn [i] (fitness i)) population))
+                 (pmap (fn [i] (fitness i image)) population))
   ))
 
 
@@ -127,7 +137,7 @@
   "mutates a single element using random disturbances"
   :type
   )
-(defmethod mutate :Color [c]
+(defmethod mutate :Color [c image]
   (let [dr (int (* (:red c) (random-double)))
         dg (int (* (:green c) (random-double)))
         db (int (* (:blue c) (random-double)))
@@ -137,25 +147,25 @@
            :blue (max (min (- (:blue c) db) 255) 0)
            :alpha (max (min (- (:alpha c) da) 255) 0))))
 
-(defmethod mutate :Polygon [p] 
+(defmethod mutate :Polygon [p image] 
   (defn mutate-point [p]
     (let [n (rand-int (count (:points p)))]
-      (assoc p :points (assoc (:points p) n (mutate (get (:points p) n))))))
+      (assoc p :points (assoc (:points p) n (mutate (get (:points p) n) image)))))
 
-  (defn mutate-color [p] (assoc p :color (mutate (:color p))))
+  (defn mutate-color [p] (assoc p :color (mutate (:color p) image)))
   
   (let [roulette (rand-int 2)]
     (cond
       (= 0 roulette) (mutate-point p)
       (= 1  roulette) (mutate-color p))))
 
-(defmethod mutate :Point [p]
+(defmethod mutate :Point [p image]
   (let [dx (int (* (:x p) (random-double)))
         dy (int (* (:y p) (random-double)))]
-    (assoc p :x (max (min (- (:x p) dx) (.getWidth (source-image))) 0)
-             :y (max (min (- (:y p) dy) (.getHeight (source-image))) 0)))
+    (assoc p :x (max (min (- (:x p) dx) (.getWidth image)) 0)
+             :y (max (min (- (:y p) dy) (.getHeight image)) 0)))
   )
-(defmethod mutate :Program [p]
+(defmethod mutate :Program [p image]
   (defn add-polygon [p]
     (assoc p :code
            (concat (:code p)
@@ -168,8 +178,8 @@
                             (vec (map
                                    (fn [n]
                                      (point
-                                       (rand-int (.getWidth (source-image)))
-                                       (rand-int (.getHeight (source-image)))))
+                                       (rand-int (.getWidth image))
+                                       (rand-int (.getHeight image))))
                                    (range 5)))))])
            :fitness nil :image nil))
   (defn remove-polygon [p]
@@ -190,7 +200,7 @@
                                    n
                                    (list (nth target 0)
                                          (nth target 1)
-                                         (mutate (nth target 2)))))
+                                         (mutate (nth target 2) image))))
              :fitness nil :image nil))
   )
   (let [polygon-count (count (program-expressions p))
@@ -205,11 +215,11 @@
 
 (defn evolve 
   "Evolves a population, applying the random evolution function"
-  [settings]
+  [settings image]
    (loop [i 0
          population (list initial-program)]
-    (let [fittest (select population 1)
-          newborns (map (fn [i] (mutate i)) fittest)]
+    (let [fittest (select population 1 image)
+          newborns (map (fn [i] (mutate i image)) fittest)]
       ((:new-generation-callback settings (fn [a b])) i fittest)
       (when-not (= (first population) (first fittest))
         ((:new-fittest-callback settings (fn [a b])) i fittest))
@@ -219,9 +229,9 @@
 (defn -main [& args]
   (let [jframe (new JFrame "Fittest Program")
         fittest (atom (list initial-program))
-    image (source-image)
-    image-width (.getWidth image)
-    image-height (.getHeight image)
+    img (source-image)
+    image-width (.getWidth img)
+    image-height (.getHeight img)
         settings {
                   :new-fittest-callback (fn [i f]
                       (swap! fittest (fn [o n] n) f)
@@ -235,5 +245,5 @@
               (.fillRect 0 0 image-width image-height)
               (.drawImage (:image (first @fittest)) nil 0 0)))))
       (.setVisible true))
-    (evolve settings)))
+    (evolve settings img)))
 
