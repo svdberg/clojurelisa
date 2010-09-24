@@ -9,9 +9,16 @@
   '(javax.swing JFrame JPanel JFileChooser))
 
 ;helpers
-(defn random-double
-  []
-  (- (* 2 (rand)) 1))
+(defn random-double [] (- (* 2 (rand)) 1))
+
+(defn clamp [x lower upper] (max (min x upper) lower))
+
+(defn clamp0255 [x] (clamp x 0 255))
+
+(defn noise [x] (int (* x (random-double))))
+
+(defn add-noise [x] (clamp0255 (- x (noise x))))
+
 ;end helpers
 
 ;polygon and drawing building blocks
@@ -33,8 +40,7 @@
                           (:alpha (:color polygon))))
     (.fillPolygon (let [jpolygon (new Polygon)]
                     (doseq [p (:points polygon)] (. jpolygon (addPoint (:x p)
-                                                                       (:y
-                                                                          p)))) 
+                                                                       (:y p)))) 
                     jpolygon)))
     nil)
 ;end polygon and drawing building blocks
@@ -132,20 +138,16 @@
                  (pmap (fn [i] (fitness i image)) population))
   ))
 
-
 (defmulti mutate
   "mutates a single element using random disturbances"
   :type
   )
+
 (defmethod mutate :Color [c image]
-  (let [dr (int (* (:red c) (random-double)))
-        dg (int (* (:green c) (random-double)))
-        db (int (* (:blue c) (random-double)))
-        da (int (* (:alpha c) (random-double)))]
-    (assoc c :red (max (min (- (:red c) dr) 255) 0)
-           :green (max (min (- (:green c) dg) 255) 0)
-           :blue (max (min (- (:blue c) db) 255) 0)
-           :alpha (max (min (- (:alpha c) da) 255) 0))))
+  (assoc c :red (add-noise (:red c))
+	 :green (add-noise (:green c))
+	 :blue (add-noise (:blue c))
+	 :alpha (add-noise (:alpha c))))
 
 (defmethod mutate :Polygon [p image] 
   (defn mutate-point [p]
@@ -160,11 +162,9 @@
       (= 1  roulette) (mutate-color p))))
 
 (defmethod mutate :Point [p image]
-  (let [dx (int (* (:x p) (random-double)))
-        dy (int (* (:y p) (random-double)))]
-    (assoc p :x (max (min (- (:x p) dx) (.getWidth image)) 0)
-             :y (max (min (- (:y p) dy) (.getHeight image)) 0)))
-  )
+  (assoc p :x (clamp (- (:x p) (noise (:x p))) 0 (.getWidth image))
+	   :y (clamp (- (:y p) (noise (:y p))) 0 (.getHeight image))))
+
 (defmethod mutate :Program [p image]
   (defn add-polygon [p]
     (assoc p :code
@@ -172,9 +172,10 @@
                    [(list 'clojurelisa.core/draw-polygon
                           (first (nth (:code initial-program) 1))
                           (polygon
-                            (color (rand-int 255) (rand-int 255) (rand-int
-                                                                   255)
-                                   (rand-int 255))
+			   (color (rand-int 255)
+				  (rand-int 255)
+				  (rand-int 255)
+				  (rand-int 255))
                             (vec (map
                                    (fn [n]
                                      (point
@@ -241,9 +242,9 @@
       (.add (proxy [JPanel] []
         (paint [g]
           (doto g 
-              (.setColor Color/white)
-              (.fillRect 0 0 image-width image-height)
-              (.drawImage (:image (first @fittest)) nil 0 0)))))
+	    (.setColor Color/white)
+	    (.fillRect 0 0 image-width image-height)
+	    (.drawImage (:image (first @fittest)) nil 0 0)))))
       (.setVisible true))
     (evolve settings img)))
 
