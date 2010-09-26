@@ -123,9 +123,9 @@
         (if (< i (alength gen-pixels))
           (let [src-color (new Color (aget src-pixels i))
                 gen-color (new Color (aget gen-pixels i))
-                dr (- (. src-color (getRed)) (. gen-color (getRed)))
-                dg (- (. src-color (getGreen)) (. gen-color (getGreen)))
-                db (- (. src-color (getBlue)) (. gen-color (getBlue)))]
+                dr (- (.getRed src-color) (.getRed gen-color))
+                dg (- (.getGreen src-color) (.getGreen gen-color))
+                db (- (.getBlue src-color) (.getBlue gen-color))]
             (recur (unchecked-inc i) (int (+ lms (* dr dr) (* dg dg) (* db
                                                                         db)))))
           (assoc individual :fitness lms :image gen-image))))))
