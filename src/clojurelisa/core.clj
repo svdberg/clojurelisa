@@ -108,14 +108,14 @@
 (defn best-fit
   "calculates the least mean square of two sequences of pixels"
   [lista listb]
-  (defn fit [a b] 
+  (letfn [(fit [a b] 
     (let [ src-color (new Color a)
            gen-color (new Color b)
            dr (- (.getRed src-color) (.getRed gen-color))
            dg (- (.getGreen src-color) (.getGreen gen-color))
            db (- (.getBlue src-color) (.getBlue gen-color))]
-      (+ (* dr dr) (* dg dg) (* db db))))
-  (reduce + (map fit lista listb)))
+      (+ (* dr dr) (* dg dg) (* db db))))]
+  (reduce + (map fit lista listb))))
 
 (defn fitness
   "determines the fitness of a single element.
