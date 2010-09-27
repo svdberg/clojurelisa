@@ -8,6 +8,9 @@
   '(javax.imageio ImageIO)
   '(javax.swing JFrame JPanel JFileChooser))
 
+;settings
+(def max-polygons 50)
+
 ;helpers
 (defn random-double [] (- (* 2 (rand)) 1))
 
@@ -57,11 +60,6 @@
       (.grabPixels))
     pixels))
 
-;(defn source-image
-;  "returns an image instance of the original image"
-;  []
-;  (let [image (ImageIO/read (File. "/Users/maurits/code/clojure/clojurelisa/mona_lisa_crop.jpg"))]
-;    image))
 (defn source-image
   "loads the source image"
   []
@@ -107,6 +105,18 @@
 ;end program building blocks
 
 ;"bio" functions
+(defn best-fit
+  "calculates the least mean square of two sequences of pixels"
+  [lista listb]
+  (defn fit [a b] 
+    (let [ src-color (new Color a)
+           gen-color (new Color b)
+           dr (- (.getRed src-color) (.getRed gen-color))
+           dg (- (.getGreen src-color) (.getGreen gen-color))
+           db (- (.getBlue src-color) (.getBlue gen-color))]
+      (+ (* dr dr) (* dg dg) (* db db))))
+  (reduce + (map fit lista listb)))
+
 (defn fitness
   "determines the fitness of a single element.
   fitness is determined by how close a rendered image is to the original,
@@ -118,17 +128,9 @@
           src-pixels (grab-pixels image)]
       (apply (eval (:code individual)) [(. gen-image (createGraphics))])
       (def gen-pixels (grab-pixels gen-image))
-      (loop [ i (int 0)
-              lms (int 0)]
-        (if (< i (alength gen-pixels))
-          (let [src-color (new Color (aget src-pixels i))
-                gen-color (new Color (aget gen-pixels i))
-                dr (- (.getRed src-color) (.getRed gen-color))
-                dg (- (.getGreen src-color) (.getGreen gen-color))
-                db (- (.getBlue src-color) (.getBlue gen-color))]
-            (recur (unchecked-inc i) (int (+ lms (* dr dr) (* dg dg) (* db
-                                                                        db)))))
-          (assoc individual :fitness lms :image gen-image))))))
+      (def lms (best-fit gen-pixels src-pixels))
+      (assoc individual :fitness lms :image gen-image))))
+
 
 (defn select
   "Selects the (configurable) n fittests out of a generation"
@@ -145,9 +147,9 @@
 
 (defmethod mutate :Color [c image]
   (assoc c :red (add-noise (:red c))
-	 :green (add-noise (:green c))
-	 :blue (add-noise (:blue c))
-	 :alpha (add-noise (:alpha c))))
+           :green (add-noise (:green c))
+           :blue (add-noise (:blue c))
+           :alpha (add-noise (:alpha c))))
 
 (defmethod mutate :Polygon [p image] 
   (defn mutate-point [p]
@@ -163,7 +165,7 @@
 
 (defmethod mutate :Point [p image]
   (assoc p :x (clamp (- (:x p) (noise (:x p))) 0 (.getWidth image))
-	   :y (clamp (- (:y p) (noise (:y p))) 0 (.getHeight image))))
+    :y (clamp (- (:y p) (noise (:y p))) 0 (.getHeight image))))
 
 (defmethod mutate :Program [p image]
   (defn add-polygon [p]
@@ -172,10 +174,10 @@
                    [(list 'clojurelisa.core/draw-polygon
                           (first (nth (:code initial-program) 1))
                           (polygon
-			   (color (rand-int 255)
-				  (rand-int 255)
-				  (rand-int 255)
-				  (rand-int 255))
+                           (color (rand-int 255)
+                           (rand-int 255)
+                           (rand-int 255)
+                           (rand-int 255))
                             (vec (map
                                    (fn [n]
                                      (point
@@ -207,7 +209,7 @@
   (let [polygon-count (count (program-expressions p))
         roulette (cond
                    (empty? (program-expressions p)) 4
-                   (>= polygon-count 50) (rand-int 4)
+                   (>= polygon-count max-polygons) (rand-int 4)
                    :else (rand-int 5))]
     (cond
       (> 3 roulette) (mutate-polygon p)
@@ -242,9 +244,9 @@
       (.add (proxy [JPanel] []
         (paint [g]
           (doto g 
-	    (.setColor Color/white)
-	    (.fillRect 0 0 image-width image-height)
-	    (.drawImage (:image (first @fittest)) nil 0 0)))))
+        (.setColor Color/white)
+        (.fillRect 0 0 image-width image-height)
+        (.drawImage (:image (first @fittest)) nil 0 0)))))
       (.setVisible true))
     (evolve settings img)))
 
