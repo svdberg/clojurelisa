@@ -53,8 +53,8 @@
 (defn grab-pixels
   "returns an array of pixels"
   [image]
-  (let [w (. image (getWidth))
-        h (. image (getHeight))
+  (let [w (.getWidth image)
+        h (.getHeight image)
         pixels (make-array (. Integer TYPE) (* w h))]
     (doto (new PixelGrabber image 0 0 w h pixels 0 w)
       (.grabPixels))
@@ -67,9 +67,7 @@
   (doto file-chooser
     (.setCurrentDirectory (new File "."))
     (.showOpenDialog nil))
-  (let [image (ImageIO/read (. file-chooser (getSelectedFile)))]
-    image
-    ))
+  (ImageIO/read (.getSelectedFile file-chooser)))
 ;end graphics helper functions
 
 ;program building blocks
@@ -164,8 +162,9 @@
       (= 1  roulette) (mutate-color p))))
 
 (defmethod mutate :Point [p image]
-  (assoc p :x (clamp (- (:x p) (noise (:x p))) 0 (.getWidth image))
-    :y (clamp (- (:y p) (noise (:y p))) 0 (.getHeight image))))
+           (assoc p
+             :x (clamp (- (:x p) (noise (:x p))) 0 (.getWidth image))
+             :y (clamp (- (:y p) (noise (:y p))) 0 (.getHeight image))))
 
 (defmethod mutate :Program [p image]
   (defn add-polygon [p]
@@ -175,15 +174,15 @@
                           (first (nth (:code initial-program) 1))
                           (polygon
                            (color (rand-int 255)
-                           (rand-int 255)
-                           (rand-int 255)
-                           (rand-int 255))
-                            (vec (map
-                                   (fn [n]
-                                     (point
-                                       (rand-int (.getWidth image))
-                                       (rand-int (.getHeight image))))
-                                   (range 5)))))])
+                                  (rand-int 255)
+                                  (rand-int 255)
+                                  (rand-int 255))
+                           (vec (map
+                                 (fn [n]
+                                   (point
+                                    (rand-int (.getWidth image))
+                                    (rand-int (.getHeight image))))
+                                 (range 5)))))])
            :fitness nil :image nil))
   (defn remove-polygon [p]
     (let [n (rand-int (count (program-expressions p)))]
