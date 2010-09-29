@@ -30,6 +30,10 @@
 
 (defn point [x y] {:type :Point :x x :y y})
 
+(defn rand-point [image]
+  (point (rand-int (.getWidth image))
+         (rand-int (.getHeight image))))
+
 (defn polygon [color points] {:type :Polygon :color color :points points})
 
 (defn draw-polygon 
@@ -129,14 +133,12 @@
       (def lms (best-fit gen-pixels src-pixels))
       (assoc individual :fitness lms :image gen-image))))
 
-
 (defn select
   "Selects the (configurable) n fittests out of a generation"
   [population n image]
   (take n
         (sort-by :fitness
-                 (pmap (fn [i] (fitness i image)) population))
-  ))
+                 (pmap (fn [i] (fitness i image)) population))))
 
 (defmulti mutate
   "mutates a single element using random disturbances"
@@ -177,12 +179,7 @@
                                   (rand-int 255)
                                   (rand-int 255)
                                   (rand-int 255))
-                           (vec (map
-                                 (fn [n]
-                                   (point
-                                    (rand-int (.getWidth image))
-                                    (rand-int (.getHeight image))))
-                                 (range 5)))))])
+                           (vec (take 5 (repeatedly #(rand-point image))))))])
            :fitness nil :image nil))
   (defn remove-polygon [p]
     (let [n (rand-int (count (program-expressions p)))]
