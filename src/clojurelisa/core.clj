@@ -44,8 +44,7 @@
     (.setColor
      (new Color (:red color) (:blue color) (:green color) (:alpha color)))
     (.fillPolygon (let [jpolygon (new Polygon)]
-                    (doseq [p points] (.addPoint jpolygon (:x p) (:y p))) 
-;                    (doseq [p points] (. jpolygon (addPoint (:x p) (:y p)))) 
+                    (doseq [{x :x, y :y, :as p} points] (.addPoint jpolygon x y)) 
                     jpolygon)))
   nil)
 ;end polygon and drawing building blocks
@@ -85,14 +84,12 @@
 (defn program-header
   "returns the header (definition) of a program"
   [prog]
-  (take 2 (:code prog))
-  )
+  (take 2 (:code prog)))
 
 (defn program-expressions
   "returns the actual program expressions, minus the header"
   [prog]
-  (drop (count (program-header prog)) (:code prog))
-  )
+  (drop (count (program-header prog)) (:code prog)))
 
 (defn remove-item
   "removes a single item out of the list of expressions"
@@ -129,7 +126,7 @@
     individual
     (let [gen-image (new BufferedImage (.getWidth image) (.getHeight image) BufferedImage/TYPE_INT_ARGB)
           src-pixels (grab-pixels image)]
-      (apply (eval (:code individual)) [(. gen-image (createGraphics))])
+      (apply (eval (:code individual)) [(.createGraphics gen-image)])
       (def gen-pixels (grab-pixels gen-image))
       (def lms (best-fit gen-pixels src-pixels))
       (assoc individual :fitness lms :image gen-image))))
