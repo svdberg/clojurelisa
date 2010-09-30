@@ -67,13 +67,14 @@
 (defn source-image
   "loads the source image"
   [& [optional-path]]
-  (def file-chooser (new JFileChooser))
-  (if (not (= optional-path nil))
-    (ImageIO/read (File. optional-path))
-    ((doto file-chooser
-    (.setCurrentDirectory (new File "."))
-    (.showOpenDialog nil))
-     (ImageIO/read (.getSelectedFile file-chooser)))))
+  (if (nil? optional-path)
+    (do
+      (def file-chooser (new JFileChooser))
+      (doto file-chooser
+        (.setCurrentDirectory (new File "."))
+        (.showOpenDialog nil))
+      (ImageIO/read (.getSelectedFile file-chooser)))
+    (ImageIO/read (File. optional-path))))
 ;end graphics helper functions
 
 ;program building blocks
@@ -241,10 +242,10 @@
       (.setSize image-width image-height)
       (.add (proxy [JPanel] []
         (paint [g]
-          (doto g 
-        (.setColor Color/white)
-        (.fillRect 0 0 image-width image-height)
-        (.drawImage (:image (first @fittest)) nil 0 0)))))
+               (doto g 
+                 (.setColor Color/white)
+                 (.fillRect 0 0 image-width image-height)
+                 (.drawImage (:image (first @fittest)) nil 0 0)))))
       (.setVisible true))
     (evolve settings img)))
 
