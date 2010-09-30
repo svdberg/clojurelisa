@@ -66,12 +66,14 @@
 
 (defn source-image
   "loads the source image"
-  []
+  [& [optional-path]]
   (def file-chooser (new JFileChooser))
-  (doto file-chooser
+  (if (not (= optional-path nil))
+    (ImageIO/read (File. optional-path))
+    ((doto file-chooser
     (.setCurrentDirectory (new File "."))
     (.showOpenDialog nil))
-  (ImageIO/read (.getSelectedFile file-chooser)))
+     (ImageIO/read (.getSelectedFile file-chooser)))))
 ;end graphics helper functions
 
 ;program building blocks
