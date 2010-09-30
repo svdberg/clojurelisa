@@ -39,17 +39,15 @@
 (defn draw-polygon 
   "draws a single polygon, using Java fillPolygon.
   returns nothing (nil)"
-  [graphics polygon]
+  [graphics {color :color, points :points, :as polygon}]
   (doto graphics
-    (.setColor (new Color (:red (:color polygon))
-                          (:blue (:color polygon))
-                          (:green (:color polygon))
-                          (:alpha (:color polygon))))
+    (.setColor
+     (new Color (:red color) (:blue color) (:green color) (:alpha color)))
     (.fillPolygon (let [jpolygon (new Polygon)]
-                    (doseq [p (:points polygon)] (. jpolygon (addPoint (:x p)
-                                                                       (:y p)))) 
+                    (doseq [p points] (.addPoint jpolygon (:x p) (:y p))) 
+;                    (doseq [p points] (. jpolygon (addPoint (:x p) (:y p)))) 
                     jpolygon)))
-    nil)
+  nil)
 ;end polygon and drawing building blocks
 
 
@@ -154,10 +152,10 @@
            :blue (add-noise (:blue c))
            :alpha (add-noise (:alpha c))))
 
-(defmethod mutate :Polygon [p image] 
+(defmethod mutate :Polygon [{points :points, :as p} image] 
   (defn mutate-point [p]
-    (let [n (rand-int (count (:points p)))]
-      (assoc p :points (assoc (:points p) n (mutate (get (:points p) n) image)))))
+    (let [n (rand-int (count points))]
+      (assoc p :points (assoc points n (mutate (get points n) image)))))
 
   (defn mutate-color [p] (assoc p :color (mutate (:color p) image)))
   
@@ -166,10 +164,10 @@
       (= 0 roulette) (mutate-point p)
       (= 1  roulette) (mutate-color p))))
 
-(defmethod mutate :Point [p image]
+(defmethod mutate :Point [{x :x, y :y, :as p} image]
            (assoc p
-             :x (clamp (- (:x p) (noise (:x p))) 0 (.getWidth image))
-             :y (clamp (- (:y p) (noise (:y p))) 0 (.getHeight image))))
+             :x (clamp (- x (noise x)) 0 (.getWidth image))
+             :y (clamp (- y (noise y)) 0 (.getHeight image))))
 
 (defmethod mutate :Program [p image]
   (defn add-polygon [p]
