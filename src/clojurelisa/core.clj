@@ -65,11 +65,11 @@
   [& [optional-path]]
   (if (nil? optional-path)
     (do
-      (def file-chooser (new JFileChooser))
+      (let [file-chooser (new JFileChooser)]
       (doto file-chooser
         (.setCurrentDirectory (new File "."))
         (.showOpenDialog nil))
-      (ImageIO/read (.getSelectedFile file-chooser)))
+      (ImageIO/read (.getSelectedFile file-chooser))))
     (ImageIO/read (File. optional-path))))
 ;end graphics helper functions
 
@@ -77,8 +77,7 @@
 (defn program
   "defines and constructs a single program"
   [code fitness image]
-  {:type :Program :code code :fitness fitness :image image}
-  )
+  {:type :Program :code code :fitness fitness :image image})
 
 (defn program-header
   "returns the header (definition) of a program"
@@ -126,9 +125,9 @@
     (let [gen-image (new BufferedImage (.getWidth image) (.getHeight image) BufferedImage/TYPE_INT_ARGB)
           src-pixels (grab-pixels image)]
       (apply (eval (:code individual)) [(.createGraphics gen-image)])
-      (def gen-pixels (grab-pixels gen-image))
-      (def lms (best-fit gen-pixels src-pixels))
-      (assoc individual :fitness lms :image gen-image))))
+      (let [ gen-pixels (grab-pixels gen-image)
+             lms (best-fit gen-pixels src-pixels)]
+      (assoc individual :fitness lms :image gen-image)))))
 
 (defn select
   "Selects the (configurable) n fittests out of a generation"
@@ -139,8 +138,7 @@
 
 (defmulti mutate
   "mutates a single element using random disturbances"
-  :type
-  )
+  :type)
 
 (defmethod mutate :Color [c image]
   (assoc c :red (add-noise (:red c))
