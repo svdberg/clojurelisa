@@ -49,12 +49,11 @@
   nil)
 ;end polygon and drawing building blocks
 
-
 ;graphics helper functions
 (defn grab-pixels
   "returns an array of pixels"
   [image]
-  (let [w (.getWidth image)
+  (let [w (.getWidth image )
         h (.getHeight image)
         pixels (make-array (. Integer TYPE) (* w h))]
     (doto (new PixelGrabber image 0 0 w h pixels 0 w)
@@ -216,7 +215,7 @@
    (loop [i 0
          population (list initial-program)]
     (let [fittest (select population 1 image)
-          newborns (map (fn [i] (mutate i image)) fittest)]
+          newborns (map #(mutate % image) fittest)]
       ((:new-generation-callback settings (fn [a b])) i fittest)
       (when-not (= (first population) (first fittest))
         ((:new-fittest-callback settings (fn [a b])) i fittest))

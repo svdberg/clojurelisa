@@ -43,3 +43,16 @@
            (is (= (best-fit original-pixel-list empty-list) 0))
            (is (= (best-fit original-pixel-list original-pixel-list) 0))
             ))
+
+(deftest test-clamp
+         (let [expected-value 10]
+           (is (= (clamp 9 10 20) expected-value))
+           (is (= (clamp 15 10 20) 15))
+           (is (= (clamp 22 10 20) 20))))
+
+(deftest test-fitness
+         (let [start-individual initial-program
+               third-gen-individual (mutate (mutate (mutate start-individual test-image) test-image) test-image)
+               start-value (fitness start-individual test-image)]
+           (is (> (:fitness start-value) 0))
+           (is (< (:fitness (fitness third-gen-individual test-image)) (:fitness start-value)))))
