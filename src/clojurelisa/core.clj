@@ -21,7 +21,6 @@
 (defn noise [x] (int (* x (random-double))))
 
 (defn add-noise [x] (clamp0255 (- x (noise x))))
-
 ;end helpers
 
 ;polygon and drawing building blocks
@@ -136,6 +135,7 @@
         (sort-by :fitness
                  (pmap (fn [i] (fitness i image)) population))))
 
+
 (defmulti mutate
   "mutates a single element using random disturbances"
   :type)
@@ -146,66 +146,69 @@
            :blue (add-noise (:blue c))
            :alpha (add-noise (:alpha c))))
 
-(defmethod mutate :Polygon [{points :points, :as p} image] 
-  (defn mutate-point [p]
-    (let [n (rand-int (count points))]
-      (assoc p :points (assoc points n (mutate (get points n) image)))))
+(defn mutate-point [p points image]
+   (let [n (rand-int (count points))]
+     (assoc p :points (assoc points n (mutate (get points n) image)))))
 
-  (defn mutate-color [p] (assoc p :color (mutate (:color p) image)))
-  
+(defn mutate-color [p image] 
+  (assoc p :color (mutate (:color p) image)))
+
+(defmethod mutate :Polygon [{points :points, :as p} image] 
   (let [roulette (rand-int 2)]
     (cond
-      (= 0 roulette) (mutate-point p)
-      (= 1  roulette) (mutate-color p))))
+      (= 0 roulette) (mutate-point p points image)
+      (= 1  roulette) (mutate-color p image))))
 
 (defmethod mutate :Point [{x :x, y :y, :as p} image]
            (assoc p
              :x (clamp (- x (noise x)) 0 (.getWidth image))
              :y (clamp (- y (noise y)) 0 (.getHeight image))))
 
-(defmethod mutate :Program [p image]
-  (defn add-polygon [p]
+(defn mutate-polygon 
+  "triggers mutations on polygon code + childen"
+  [p image]
+  (let [expressions (program-expressions p)
+        n (rand-int (count expressions))
+        target (nth expressions n)]
     (assoc p :code
-           (concat (:code p)
-                   [(list 'clojurelisa.core/draw-polygon
-                          (first (nth (:code initial-program) 1))
-                          (polygon
-                           (color (rand-int 255)
-                                  (rand-int 255)
-                                  (rand-int 255)
-                                  (rand-int 255))
-                           (vec (take 5 (repeatedly #(rand-point image))))))])
-           :fitness nil :image nil))
-  (defn remove-polygon [p]
-    (let [n (rand-int (count (program-expressions p)))]
-      (assoc p :code (concat (program-header p)
-                             (remove-item (program-expressions p) n))
-             :fitness nil :image nil))
-  )
-  (defn mutate-polygon 
-    "triggers mutations on polygon code + childen"
-    [p]
-    (let [expressions (program-expressions p)
-          n (rand-int (count expressions))
-          target (nth expressions n)]
-      (assoc p :code
-             (concat (program-header p)
-                     (replace-item expressions
+           (concat (program-header p)
+                   (replace-item expressions
                                    n
-                                   (list (nth target 0)
-                                         (nth target 1)
-                                         (mutate (nth target 2) image))))
-             :fitness nil :image nil))
-  )
+                                 (list (nth target 0)
+                                       (nth target 1)
+                                       (mutate (nth target 2) image))))
+           :fitness nil :image nil)))
+
+(defn add-polygon [p image]
+  (assoc p :code
+         (concat (:code p)
+                 [(list 'clojurelisa.core/draw-polygon
+                        (first (nth (:code initial-program) 1))
+                        (polygon
+                         (color (rand-int 255)
+                                (rand-int 255)
+                                (rand-int 255)
+                                (rand-int 255))
+                         (vec (take 5 (repeatedly #(rand-point image))))))])
+         :fitness nil :image nil))
+
+(defn remove-polygon [p]
+  (let [n (rand-int (count (program-expressions p)))]
+    (assoc p :code (concat (program-header p)
+                           (remove-item (program-expressions p) n))
+           :fitness nil :image nil)))
+
+
+(defmethod mutate :Program [p image]
   (let [polygon-count (count (program-expressions p))
         roulette (cond
                    (empty? (program-expressions p)) 4
                    (>= polygon-count max-polygons) (rand-int 4)
                    :else (rand-int 5))]
     (cond
-      (> 3 roulette) (mutate-polygon p)
+      (> 3 roulette) (mutate-polygon p image)
       (= 3 roulette) (remove-polygon p)
-      (= 4 roulette) (add-polygon p))))
+      (= 4 roulette) (add-polygon p image))))
 
 (defn evolve 
   "Evolves a population, applying the random evolution function"
