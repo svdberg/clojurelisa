@@ -133,8 +133,7 @@
   [population n image]
   (take n
         (sort-by :fitness
-                 (pmap (fn [i] (fitness i image)) population))))
-
+                 (pmap #(fitness % image) population))))
 
 (defmulti mutate
   "mutates a single element using random disturbances"
