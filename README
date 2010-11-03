@@ -1,15 +1,11 @@
 # clojurelisa
 
-FIXME: write description
+a simple clojure demo program to generate the mona lisa painting using a fixed nr. of polygons and a genetic like hill-climbing algorithm
 
 ## Usage
 
-FIXME: write
-
-## Installation
-
-FIXME: write
+Just lein uberjar and run it
 
 ## License
 
-FIXME: write
+Free for use, however you like..
